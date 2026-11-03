@@ -5,7 +5,7 @@ This repository is prepared so an AI agent can create a Total.js 5 action and it
 ## 1. Install
 
 ```bash
-git clone https://github.com/total-enterprise/actions.git
+git clone https://github.com/totaljs/actions.git
 cd actions
 npm install
 ```
