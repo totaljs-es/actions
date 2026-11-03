@@ -6,16 +6,16 @@ Plain JavaScript (ES5 style), no TypeScript. Requires total5@beta.
 
 ## Start here
 
-- [AGENTS.md](https://raw.githubusercontent.com/total-enterprise/actions/main/AGENTS.md): What this repository is and how to use it
-- [SKILL.md](https://raw.githubusercontent.com/total-enterprise/actions/main/SKILL.md): Workflow, rules, the test and the checklist to create an action
-- [Template: action.js](https://raw.githubusercontent.com/total-enterprise/actions/main/example/action.js): The reference action
-- [Template: test.js](https://raw.githubusercontent.com/total-enterprise/actions/main/example/test.js): The reference test: calls the action and checks the result
+- [AGENTS.md](https://raw.githubusercontent.com/totaljs/actions/main/AGENTS.md): What this repository is and how to use it
+- [SKILL.md](https://raw.githubusercontent.com/totaljs/actions/main/SKILL.md): Workflow, rules, the test and the checklist to create an action
+- [Template: action.js](https://raw.githubusercontent.com/totaljs/actions/main/example/action.js): The reference action
+- [Template: test.js](https://raw.githubusercontent.com/totaljs/actions/main/example/test.js): The reference test: calls the action and checks the result
 
 ## Reference
 
-- [API](https://raw.githubusercontent.com/total-enterprise/actions/main/docs/api.md): Options of NEWACTION, the $ object, types of input and output, calling an action, REQUEST and the test library
+- [API](https://raw.githubusercontent.com/totaljs/actions/main/docs/api.md): Options of NEWACTION, the $ object, types of input and output, calling an action, REQUEST and the test library
 - [Documentation](https://docs.totaljs.com): Total.js documentation
 
 ## Optional
 
-- [Checker](https://raw.githubusercontent.com/total-enterprise/actions/main/tools/check.js): Checks an action folder and runs its test
+- [Checker](https://raw.githubusercontent.com/totaljs/actions/main/tools/check.js): Checks an action folder and runs its test
