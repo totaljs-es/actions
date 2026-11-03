@@ -1,0 +1,13 @@
+{
+  "name": "totaljs-actions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A set of predefined Total.js 5 actions",
+  "scripts": {
+    "check": "node tools/check.js"
+  },
+  "dependencies": {
+    "total5": "beta"
+  },
+  "license": "MIT"
+}
