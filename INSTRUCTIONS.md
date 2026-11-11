@@ -33,38 +33,38 @@ Tips:
 
 ## 4. What the agent does
 
-- Creates the folder `actions/<name>/` with `action.js`, `test.js` and `fixtures/` when the test needs sample data.
-- Takes the template from `example/` and follows the rules of `SKILL.md`.
+- Creates the folder `actions/<name>/` with `<name>.js`, and `tests/<name>.js` with its test; the sample data of the test is written inside that file.
+- Takes the template from `example/` and `example/test.js` and follows the rules of `SKILL.md`.
 - Runs the checker and fixes what it reports:
 
 ```bash
-node tools/check.js actions/<name>
+node tools/check.js <name>
 ```
 
-The checker verifies the name (`Collection|verb`), `name`, `summary`, `input` and `output`, that the action always answers, that no real secret is written in `config`, and then it runs `test.js`.
+The checker verifies the name (`Collection|verb`), `name`, `summary`, `input` and `output`, that the action always answers, that no real secret is written in `config`, and then it runs all the tests.
 
 ## 5. Review the result
 
-- Run `node tools/check.js actions/<name>` yourself: it must end with `Errors: 0`.
-- Read `test.js`: it should cover a valid call, a missing required field, a bad answer of the API and the edge cases of your data.
+- Run `node tools/check.js <name>` yourself: it must end with `Errors: 0`.
+- Read `tests/<name>.js`: it should cover a valid call, a missing required field, a bad answer of the API and the edge cases of your data.
 - Check `config`: the URL and the token are configurable and the token is empty or `YOUR_TOKEN`.
 - A test never calls the real service. To try the real API, call the action from your own application with your token.
 
 ## Test an action
 
-Every action has a `test.js` next to its `action.js`. The template is `example/test.js`: it loads the action and calls it the way an application does. A test you can read and run is the quickest way to see that the action works.
+All the tests are in the `tests/` folder, one file per action. The template is `example/test.js`: it loads the action and calls it the way an application does. A test you can read and run is the quickest way to see that the action works.
 
 Run it with the checker, which also checks the action:
 
 ```bash
-node tools/check.js actions/<name>
+node tools/check.js <name>
 ```
 
-or run only the test from the folder of the action:
+or run only its test, or all the tests:
 
 ```bash
-cd actions/<name>
-node test.js
+total5 test <name>
+total5 test
 ```
 
 Every check prints `[OK]` or `[FAIL]`. A failure stops the test with an error.
@@ -72,9 +72,7 @@ Every check prints `[OK]` or `[FAIL]`. A failure stops the test with an error.
 A test is a list of steps. Each step calls the action with `ACTION(...)` and records what it found with `Test.print`. This one tests an action `Hello|say` that receives a required `name` and returns `text`:
 
 ```js
-require('total5');
-require('total5/test');
-require('./action');
+require('../actions/hello/hello');
 
 const USER = new User({ id: 'test', name: 'Test', sa: true, permissions: [] });
 
@@ -92,13 +90,11 @@ Test.push('Hello|say', async function(next) {
 
 	next();
 });
-
-Test.run();
 ```
 
 - `Test.print(message)` records a check that passed. `Test.print(message, error)` with a value records a failure.
 - `.promise()` gives the answer of the action and rejects with the error, for example when a required field is missing.
 - `.config({ ... })` replaces a value of `config` for one call, for example the URL of a local test server.
-- A test does not call a real service and does not need a token. The answers of an API come from `fixtures/`.
+- A test does not call a real service and does not need a token. The answers of an API are sample data inside the test file.
 
 The complete rules are in [SKILL.md](SKILL.md) and the API in [docs/api.md](docs/api.md).

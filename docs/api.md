@@ -116,16 +116,21 @@ Without `opt.callback` the call returns a promise. Parse the body with `response
 
 ## Test library
 
-```js
-require('total5');
-require('total5/test');
+`total5 test` loads the framework, the test library, `tests/config`, the optional `tests/init.js` and the test files, and runs them. A test file only registers its steps.
+
+```bash
+total5 test                      # all the files of tests/
+total5 test audit                # tests/audit.js
+total5 test audit, channels      # several files, in this order
 ```
 
 | Call | Meaning |
 |---|---|
 | `Test.push(name, function(next) {})` | Registers a step; call `next()` when it ends (the function may be `async`) |
 | `Test.print(message, error)` | Records `[OK] message`; with a truthy `error` it records `[FAIL]` and the process exits with code 1 |
-| `Test.run()` | Runs the steps in order and ends the process |
+| `Test.fake(name, action)` | Replaces the action `name` with a fake (the same object as in `NEWACTION`); the original is kept |
+| `Test.restore()` | Removes the fakes and puts the original actions back; the last step of a file that uses `Test.fake()` |
+| `Test.run()` | Runs the steps in order and ends the process; `total5 test` calls it |
 
 ## Globals used in a test
 

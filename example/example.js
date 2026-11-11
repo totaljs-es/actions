@@ -6,13 +6,15 @@ NEWACTION('Example', {
 	config: {},
 	// route: true,
 	// user: true,
-	// mpc: true,
+	// mcp: true,
 	// permissions: 'admin',
 	// timeout: 60 * 1000,
 	action: function($, model) {
 
 		// $ {Object} an action instance
 		// @model {Object} payload
+
+		// if ($.env === 'test') {}
 
 		model.id = UID();
 

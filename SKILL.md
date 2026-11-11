@@ -1,6 +1,6 @@
 ---
 name: action
-description: Create, change or test a Total.js 5 action (NEWACTION) for this repository, for example an action that calls an external API, parses a provider response or searches data. Output - a folder actions/<name>/ with action.js and test.js (and fixtures/ when the test needs sample data).
+description: Create, change or test a Total.js 5 action (NEWACTION) for this repository, for example an action that calls an external API, parses a provider response or searches data. Output - a folder actions/<name>/ with <name>.js and a test file tests/<name>.js.
 ---
 
 # Creating an action
@@ -9,7 +9,7 @@ An action is one unit of server logic: a name, the input it accepts, the output 
 
 Read these first:
 
-- `example/action.js` and `example/test.js`: the template: an action and its test, which calls the action and checks the result.
+- `example/example.js` and `example/test.js`: the template: an action and its test, which calls the action and checks the result.
 - `docs/api.md`: the options of `NEWACTION`, the `$` object, the types of `input` and `output`, how to call an action, `REQUEST` and the test library. **Do not use an option or method that is not there or in the template.**
 
 ## Setup (once)
@@ -24,26 +24,26 @@ The repository needs the Total.js 5 **beta** (`total5@beta`): the template uses 
 
 ```
 actions/<name>/
-  action.js        one or more NEWACTION(), name after the provider or the topic (lower case)
-  test.js          runs the actions with assertions, no network, no credentials
-  fixtures/        sample data for the tests (only if needed)
+  <name>.js        one or more NEWACTION(), name after the provider or the topic (lower case)
+tests/
+  <name>.js        the steps of the test: assertions, no network, no credentials
 ```
 
-The older single files in `actions/*.js` stay as they are. A new action always has its folder and its test.
+All the tests are in `tests/`. `total5 test` runs them together and `total5 test <name>` runs the test of one action. A new action always has its folder and its test file.
 
 ## Workflow
 
 1. **Name it.** `Collection|verb`, the collection in plural and capitalized, the two parts separated by a pipe: `Shipments|search`, `Shipments|parse`. Check the existing files so the name is not taken. Verbs: `list`, `read`, `create`, `update`, `save`, `remove`, plus a domain verb when it fits (`search`, `parse`, `send`, `ask`).
 2. **Write the contract** before the code, short: what goes in (`input`), what comes out (`output`), what is configurable (`config`), which errors it returns. Split by responsibility: a `parse` action only transforms data it receives (no network); a `search` action calls the provider and delegates the transformation to `parse`. Decide the open questions yourself and state the assumption; ask the user only when a decision changes the data contract.
-3. **Write `action.js`** following the rules below.
-4. **Collect fixtures** for the parsers: a real (trimmed, anonymized) response of the provider in `fixtures/`. No tokens, no personal data.
-5. **Write `test.js`** following the section "Test".
-6. **Check.** `node tools/check.js actions/<name>` checks the structure, the style and runs the test. Fix what it reports.
-7. **Report** what was verified and what was not (for example: "the real API was not called; the parsing is verified against the fixture only").
+3. **Write `actions/<name>/<name>.js`** following the rules below.
+4. **Collect sample data** for the parsers: a real (trimmed, anonymized) response of the provider, written as a constant inside its test file. No tokens, no personal data.
+5. **Write `tests/<name>.js`** following the section "Test". Run it with `total5 test <name>`.
+6. **Check.** `node tools/check.js <name>` checks the structure and the style of the action and runs all the tests. Fix what it reports.
+7. **Report** what was verified and what was not (for example: "the real API was not called; the parsing is verified against the sample only").
 
-## action.js
+## The action file
 
-Start from `example/action.js`.
+Start from `example/example.js`. The file has the name of its folder, so the folder can be copied into the `actions` folder of an application as it is.
 
 ```js
 NEWACTION('Shipments|search', {
@@ -87,21 +87,19 @@ Rules:
 - **Validate at the border.** `input` marks required fields with `*`. Whatever the provider returns is not trusted: check that the keys you read exist and return `$.invalid('@(Unknown format)')` instead of crashing.
 - **Reuse other actions** with `$.action('Collection|verb', payload)`: `.callback($)` returns its answer or its error as the answer of the current action; `await ... .promise($)` gives the value inside an `async` action. Do not copy code between actions.
 - A text for a person is `@(Text)`.
-- Code: ES5 style (`var`, `function`), tabs, single quotes, Total.js prototypes (`parseJSON`, `parseXML`, `parseCSV`, `format`, `slug`, `findItem`...) before hand-written helpers. No TypeScript. No `require()` in `action.js`: use `Total.Fs`, `Total.Path`, `Total.Crypto`, etc. A dependency from npm is allowed only when it is really needed and is listed in the `NPM` constant of the test (see `example/test.js`).
+- Code: ES5 style (`var`, `function`), tabs, single quotes, Total.js prototypes (`parseJSON`, `parseXML`, `parseCSV`, `format`, `slug`, `findItem`...) before hand-written helpers. No TypeScript. No `require()` in the action file: use `Total.Fs`, `Total.Path`, `Total.Crypto`, etc. A dependency from npm is allowed only when it is really needed and is listed in `package.json`.
 - A comment `EXAMPLE:` at the end shows how to call the action.
 - `route: true`, `user: true`, `permissions`, `timeout` and `mcp: true` only when the task asks for them (see `docs/api.md`).
 
 ## Test
 
-`test.js` runs the action as the application would (`ACTION(...)`), with the test library of Total.js, and **asserts** the result. A test that only prints is not a test.
+The test file runs the action as the application would (`ACTION(...)`), with the test library of Total.js, and **asserts** the result. A test that only prints is not a test.
 
 ```js
-require('total5');
-require('total5/test');
-require('./action');
+require('../actions/shipments/shipments');
 
 const USER = new User({ id: 'test', name: 'Test', sa: true, permissions: [] });
-const FIXTURE = Total.Fs.readFileSync(PATH.root('fixtures/shipments.json'), 'utf8');
+const SAMPLE = JSON.stringify({ items: [{ id: '1', from: 'Berlin', to: 'Vienna', delay: 0 }, { id: '2', from: 'Berlin', to: 'Vienna', delay: 12 }] });
 
 let server;
 let url;
@@ -111,10 +109,10 @@ function call(name, input, config) {
 }
 
 // A local server answers instead of the real provider
-Test.push('start the fixture server', function(next) {
+Test.push('start the local server', function(next) {
 	server = Total.Http.createServer(function(req, res) {
 		res.writeHead(200, { 'Content-Type': 'application/json' });
-		res.end(FIXTURE);
+		res.end(SAMPLE);
 	});
 	server.listen(0, '127.0.0.1', function() {
 		url = 'http://127.0.0.1:' + server.address().port;
@@ -124,7 +122,7 @@ Test.push('start the fixture server', function(next) {
 
 Test.push('Shipments|parse', async function(next) {
 
-	var out = await call('Shipments|parse', { data: FIXTURE });
+	var out = await call('Shipments|parse', { data: SAMPLE });
 	Test.print('returns 2 items', out.items.length === 2 ? null : 'got ' + out.items.length);
 
 	try {
@@ -143,21 +141,20 @@ Test.push('Shipments|search', async function(next) {
 	server.close();
 	next();
 });
-
-Test.run();
 ```
 
-- `Test.push(name, fn)` registers a step, `Test.print(message, error)` records it: `null`/missing error is `[OK]`, any value is `[FAIL]` and the process ends with exit code 1. `Test.run()` runs the steps in order and ends the process.
+- `Test.push(name, fn)` registers a step, `Test.print(message, error)` records it: `null`/missing error is `[OK]`, any value is `[FAIL]` and the process ends with exit code 1. `total5 test` calls `Test.run()`, which runs the steps of the files in order and ends the process.
 - Cover, for every action: a valid call, a call with a missing required field, the unknown or empty answer of the provider, and the edge cases of the data (empty list, missing optional keys, a different format).
-- The test never calls the real provider and never needs a token. Provider answers come from `fixtures/`, served by the local server above or passed directly to a `parse` action. An optional live test is a separate file that is skipped unless the user asks for it.
+- The test never calls the real provider and never needs a token. Provider answers are constants of the test file, served by the local server above or passed directly to a `parse` action. An optional live test is a separate file that is skipped unless the user asks for it.
 - The test finishes by itself (close the server) and does not depend on the order of the files on disk: call actions by their explicit name, not with `Object.keys(Total.actions)[0]`.
-- Run from the folder of the action: `PATH.root(...)` is the folder where `node test.js` runs, which is how `tools/check.js` runs it.
+- The test file has no `Test.run()` and no `require('total5')`: `total5 test` loads the framework, `tests/config`, the optional `tests/init.js` (a common preparation, for example a database connection) and the test files.
+- A test that replaces an action with a fake uses `Test.fake(name, obj)` instead of `NEWACTION()` and ends with a step that calls `Test.restore()`, so the test files work alone and in any order.
 
 ## Checklist
 
 - [ ] `Collection|verb` name, `name`, `summary`, `input`, `output`.
 - [ ] Every path answers once (`$.callback`, `$.success` or `$.invalid`) and returns.
 - [ ] Configurable values in `config`, no real secret in the repository.
-- [ ] Fixtures without tokens or personal data.
-- [ ] `test.js` with assertions: valid input, invalid input, bad provider answer, edge cases.
-- [ ] `node tools/check.js actions/<name>` passes.
+- [ ] Sample data in the test file without tokens or personal data.
+- [ ] `tests/<name>.js` with assertions: valid input, invalid input, bad provider answer, edge cases.
+- [ ] `node tools/check.js <name>` passes.

@@ -1,6 +1,6 @@
 # Total.js actions AI kit
 
-> Rules, a template and a checker so an AI model can create Total.js 5 actions (NEWACTION) and their tests from a natural-language description: an action folder with action.js, test.js and fixtures.
+> Rules, a template and a checker so an AI model can create Total.js 5 actions (NEWACTION) and their tests from a natural-language description: an action folder actions/<name>/ with <name>.js and a test file in tests/.
 
 Plain JavaScript (ES5 style), no TypeScript. Requires total5@beta.
 
@@ -8,8 +8,8 @@ Plain JavaScript (ES5 style), no TypeScript. Requires total5@beta.
 
 - [AGENTS.md](https://raw.githubusercontent.com/totaljs/actions/main/AGENTS.md): What this repository is and how to use it
 - [SKILL.md](https://raw.githubusercontent.com/totaljs/actions/main/SKILL.md): Workflow, rules, the test and the checklist to create an action
-- [Template: action.js](https://raw.githubusercontent.com/totaljs/actions/main/example/action.js): The reference action
-- [Template: test.js](https://raw.githubusercontent.com/totaljs/actions/main/example/test.js): The reference test: calls the action and checks the result
+- [Template: example.js](https://raw.githubusercontent.com/totaljs/actions/main/example/example.js): The reference action
+- [Template: example/test.js](https://raw.githubusercontent.com/totaljs/actions/main/example/test.js): The reference test: calls the action and checks the result
 
 ## Reference
 
@@ -18,4 +18,4 @@ Plain JavaScript (ES5 style), no TypeScript. Requires total5@beta.
 
 ## Optional
 
-- [Checker](https://raw.githubusercontent.com/totaljs/actions/main/tools/check.js): Checks an action folder and runs its test
+- [Checker](https://raw.githubusercontent.com/totaljs/actions/main/tools/check.js): Checks the action folders and runs the tests

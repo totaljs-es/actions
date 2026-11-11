@@ -4,6 +4,7 @@
   "private": true,
   "description": "A set of predefined Total.js 5 actions",
   "scripts": {
+    "test": "total5 test",
     "check": "node tools/check.js"
   },
   "dependencies": {

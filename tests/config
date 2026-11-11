@@ -1,0 +1,4 @@
+# The config of the tests: "total5 test" loads it before the test files.
+# Use only a disposable test database, never an application or production database.
+# Keep connection credentials out of commits.
+database :

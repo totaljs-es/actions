@@ -1,13 +1,15 @@
-// Checks an action folder: structure, style and runs its test.
+// Checks the action folders (structure and style) and the tests folder, and runs the tests.
 //
-// node tools/check.js actions/<name>    one folder
-// node tools/check.js                   every folder in actions/ and example/
+// node tools/check.js conversations     one action folder (actions/conversations), then the tests
+// node tools/check.js                   every action folder, then the tests
+// node tools/check.js --skip-tests      only the structure and the style
 
 var Fs = require('fs');
 var Path = require('path');
 var Child = require('child_process');
 
 var ROOT = Path.resolve(__dirname, '..');
+var current = '';
 var errors = 0;
 var warnings = 0;
 
@@ -47,7 +49,7 @@ function checkaction(code, template) {
 		names.push({ name: match[1], index: match.index });
 
 	if (!names.length) {
-		error('action.js: no NEWACTION() found');
+		error(current + ': no NEWACTION() found');
 		return;
 	}
 
@@ -56,7 +58,7 @@ function checkaction(code, template) {
 		var item = names[i];
 		var next = names[i + 1] ? names[i + 1].index : code.length;
 		var body = code.substring(item.index, next);
-		var where = 'action.js:' + line(code, item.index) + ' ' + item.name + ': ';
+		var where = current + ':' + line(code, item.index) + ' ' + item.name + ': ';
 
 		if (!template && !(/^[A-Z][A-Za-z0-9]*\|[a-z][a-z0-9]*$/).test(item.name))
 			error(where + 'the name must be "Collection|verb" (capitalized collection, pipe, lower case verb)');
@@ -78,14 +80,14 @@ function checkaction(code, template) {
 	}
 
 	if (!template && !(/EXAMPLE:/).test(code))
-		warn('action.js: add a comment "EXAMPLE:" that shows how to call the action');
+		warn(current + ': add a comment "EXAMPLE:" that shows how to call the action');
 
 	// Secrets in config
 	var regconfig = /\b(\w*(token|secret|password|apikey|key)\w*)\s*:\s*'([^']+)'/gi;
 	while (match = regconfig.exec(code)) {
 		var value = match[3];
 		if (!(/^YOUR_/).test(value) && !(/^https?:/).test(value))
-			error('action.js:' + line(code, match.index) + ': "' + match[1] + '" looks like a real secret; use an empty string or a YOUR_... placeholder');
+			error(current + ':' + line(code, match.index) + ': "' + match[1] + '" looks like a real secret; use an empty string or a YOUR_... placeholder');
 	}
 
 	var rules = [
@@ -99,97 +101,121 @@ function checkaction(code, template) {
 	for (var j = 0; j < rules.length; j++) {
 		match = rules[j][0].exec(code);
 		if (match)
-			warn('action.js:' + line(code, match.index) + ': ' + rules[j][1]);
+			warn(current + ':' + line(code, match.index) + ': ' + rules[j][1]);
 	}
 }
 
 function checktest(code) {
 
 	if (!(/Test\.print\(/).test(code))
-		error('test.js: no assertions. Use Test.push() and Test.print(message, error); see SKILL.md');
-
-	if (!(/Test\.run\(/).test(code))
-		warn('test.js: missing Test.run()');
+		error('tests: no assertions. Use Test.push() and Test.print(message, error); see SKILL.md');
 
 	if (!(/\.promise\(|\.callback\(/).test(code))
-		warn('test.js: it does not call an action with ACTION()');
+		warn('tests: they do not call an action with ACTION()');
 
 	if ((/Object\.keys\(Total\.actions\)/).test(code))
-		warn('test.js: call the actions by their name instead of Object.keys(Total.actions)[0]');
+		warn('tests: call the actions by their name instead of Object.keys(Total.actions)[0]');
 
-	if ((/https?:\/\/(?!127\.0\.0\.1|localhost)/).test(code.replace(/\/\/.*$/gm, '')))
-		warn('test.js: it seems to use a remote URL; a test must not need the network');
+	if ((/https?:\/\/(?!127\.0\.0\.1|localhost)/).test(code.replace(/\/\/.*$/gm, '').replace(/'[^']*example\.com[^']*'/g, '')))
+		warn('tests: they seem to use a remote URL; a test must not need the network');
 }
 
-function runtest(folder) {
-	var res = Child.spawnSync(process.execPath, ['test.js'], { cwd: folder, encoding: 'utf8', timeout: 60000 });
+function runtests() {
+	var res = Child.spawnSync(process.execPath, [Path.join(ROOT, 'node_modules', 'total5', 'bin', 'total5'), 'test'], { cwd: ROOT, encoding: 'utf8', timeout: 300000 });
 	var output = ((res.stdout || '') + (res.stderr || '')).trim();
 	if (res.error || res.status !== 0) {
-		error('test.js failed' + (res.error ? ' (' + res.error.code + ')' : ' with exit code ' + res.status));
-		console.log(output.split('\n').map(function(text) { return '          ' + text; }).join('\n'));
+		error('tests failed' + (res.error ? ' (' + res.error.code + ')' : ' with exit code ' + res.status));
+		console.log(output.split('\n').slice(-25).map(function(text) { return '          ' + text; }).join('\n'));
 	} else {
 		var count = (output.match(/Tests: (\d+)/) || [])[1];
-		ok('test.js passed' + (count ? ' (' + count + ' assertions)' : ''));
+		ok('tests passed' + (count ? ' (' + count + ' assertions)' : ''));
 	}
 }
 
-function check(folder) {
+function checktests(skip) {
 
-	console.log(Path.relative(ROOT, folder) || '.');
-
-	var action = Path.join(folder, 'action.js');
-	var test = Path.join(folder, 'test.js');
-
-	if (!Fs.existsSync(action)) {
-		error('missing action.js');
-		return;
-	}
-
-	if (!Fs.existsSync(test)) {
-		error('missing test.js');
-		return;
-	}
+	var dir = Path.join(ROOT, 'tests');
+	console.log('tests');
 
 	var before = errors;
-	syntax(action);
-	syntax(test);
+	var all = '';
+
+	(Fs.existsSync(dir) ? Fs.readdirSync(dir) : []).filter(function(name) { return /\.js$/.test(name); }).forEach(function(name) {
+		syntax(Path.join(dir, name));
+		all += Fs.readFileSync(Path.join(dir, name), 'utf8') + '\n';
+	});
 
 	if (errors > before)
 		return;
 
-	// example/ is the template: its name is not Collection|verb
-	var template = Path.basename(folder) === 'example';
+	if (!all) {
+		ok('no test files');
+		return;
+	}
 
-	checkaction(Fs.readFileSync(action, 'utf8'), template);
+	checktest(all);
 
-	checktest(Fs.readFileSync(test, 'utf8'));
+	if (skip)
+		return;
 
 	if (!Fs.existsSync(Path.join(ROOT, 'node_modules', 'total5'))) {
 		error('total5 is not installed: run "npm install"');
 		return;
 	}
 
-	runtest(folder);
+	runtests();
+}
+
+function check(folder) {
+
+	console.log(Path.relative(ROOT, folder) || '.');
+
+	var filename = Path.basename(folder) + '.js';
+	var action = Path.join(folder, filename);
+
+	if (!Fs.existsSync(action)) {
+		error('missing ' + filename);
+		return;
+	}
+
+	current = filename;
+	var before = errors;
+	syntax(action);
+
+	if (errors > before)
+		return;
+
+	// example/ is the template: its name is not Collection|verb
+	checkaction(Fs.readFileSync(action, 'utf8'), Path.basename(folder) === 'example');
 }
 
 function folders() {
-	var arr = [Path.join(ROOT, 'example')];
 	var dir = Path.join(ROOT, 'actions');
-	Fs.readdirSync(dir).forEach(function(name) {
-		var path = Path.join(dir, name);
-		if (Fs.statSync(path).isDirectory())
-			arr.push(path);
+	var list = (Fs.existsSync(dir) ? Fs.readdirSync(dir) : []).filter(function(name) {
+		return Fs.existsSync(Path.join(dir, name, name + '.js'));
+	}).sort().map(function(name) {
+		return Path.join(dir, name);
 	});
-	return arr;
+	list.push(Path.join(ROOT, 'example'));
+	return list;
 }
 
 var args = process.argv.slice(2);
-var list = args.length ? args.map(function(name) { return Path.resolve(name); }) : folders();
+var skip = args.indexOf('--skip-tests') !== -1;
+args = args.filter(function(name) { return name !== '--skip-tests'; });
+var list = args.length ? args.map(function(name) {
+	// A name of an action ("conversations") or a path ("actions/conversations")
+	var folder = Path.join(ROOT, 'actions', name);
+	return Fs.existsSync(folder) ? folder : Path.resolve(name);
+}) : folders();
 
 list.forEach(function(folder) {
 	check(folder);
 	console.log('');
 });
+
+checktests(skip);
+console.log('');
 
 console.log('Errors: ' + errors + ', warnings: ' + warnings);
 process.exit(errors ? 1 : 0);
