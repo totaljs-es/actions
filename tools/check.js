@@ -128,7 +128,10 @@ function runtests() {
 		console.log(output.split('\n').slice(-25).map(function(text) { return '          ' + text; }).join('\n'));
 	} else {
 		var count = (output.match(/Tests: (\d+)/) || [])[1];
-		ok('tests passed' + (count ? ' (' + count + ' assertions)' : ''));
+		if (count)
+			ok('tests passed (' + count + ' assertions)');
+		else
+			error('the tests did not run: the installed total5 has no "test" command, run "npm install total5@beta"');
 	}
 }
 
